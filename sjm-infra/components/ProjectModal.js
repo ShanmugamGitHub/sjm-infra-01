@@ -1,220 +1,220 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Banknote, User, MapPin, Ruler } from 'lucide-react';
 
 export default function ProjectModal({ modal, setModal }) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [imgIdx, setImgIdx] = useState(0);
 
+  const images = modal ? (modal.images?.length > 0 ? modal.images : [modal.img]) : [];
+
+  // Reset slide index when modal changes
   useEffect(() => {
-    // Prevent scrolling on body when modal is open
-    if (modal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => { document.body.style.overflow = 'unset'; };
+    setImgIdx(0);
   }, [modal]);
 
+  // Lock body scroll when open
+  useEffect(() => {
+    document.body.style.overflow = modal ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [modal]);
+
+  const prev = useCallback((e) => {
+    e?.stopPropagation();
+    setImgIdx(i => (i === 0 ? images.length - 1 : i - 1));
+  }, [images.length]);
+
+  const next = useCallback((e) => {
+    e?.stopPropagation();
+    setImgIdx(i => (i + 1) % images.length);
+  }, [images.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!modal) return;
+    const handler = (e) => {
+      if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'ArrowRight') next();
+      if (e.key === 'Escape') setModal(null);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [modal, prev, next, setModal]);
+
   if (!modal) return null;
-
-  // If the modal data only has one image, we'll create a mock array for demonstration
-  const defaultImages = [
-    modal.img,
-    modal.img.replace('.png', '_alt1.png'),
-    modal.img.replace('.png', '_alt2.png')
-  ];
-  const images = modal.images || defaultImages;
-
-  const nextImage = (e) => {
-    e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const prevImage = (e) => {
-    e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
 
   return (
     <div
       className="modal-overlay active"
-      onClick={(e) => e.target === e.currentTarget && setModal(null)}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '0', // Remove padding for full-screen feel on mobile
-        background: 'rgba(0,0,0,0.95)',
-        backdropFilter: 'blur(10px)',
-      }}
+      onClick={e => e.target === e.currentTarget && setModal(null)}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Project: ${modal.title}`}
     >
-      <div className="modal-box" style={{ 
-        maxWidth: '1200px', 
-        width: '100%', 
-        height: '90vh', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        borderRadius: 'var(--radius-xl)',
-        overflow: 'hidden',
-        position: 'relative'
+      <div className="modal-box" style={{
+        width: '95vw', maxWidth: '1100px',
+        maxHeight: '92vh',
+        display: 'flex', flexDirection: 'column',
+        background: '#0B1624',
+        border: '1px solid rgba(255,255,255,0.08)',
       }}>
-        
-        {/* Close Button */}
-        <button
-          onClick={() => setModal(null)}
-          style={{
-            position: 'absolute', top: '24px', right: '24px',
-            background: 'var(--navy)', color: '#fff',
-            border: '2px solid rgba(255,255,255,0.2)', borderRadius: '50%',
-            width: '44px', height: '44px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: '1.4rem',
-            zIndex: '1000', transition: 'all 0.2s ease',
-            boxShadow: 'var(--shadow-lg)'
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = '#fff';
-            e.currentTarget.style.color = 'var(--navy)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'var(--navy)';
-            e.currentTarget.style.color = '#fff';
-          }}
-          aria-label="Close modal"
-        >
-          ×
-        </button>
 
-        {/* Carousel Area */}
-        <div style={{ position: 'relative', flex: '1', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          
-          {/* Main Image */}
-          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+        {/* -- CAROUSEL --------------------------- */}
+        <div style={{ position: 'relative', flexShrink: 0, height: '52%', minHeight: '280px', background: '#000' }}>
+          {/* Image */}
+          <div style={{ position: 'relative', height: '100%', width: '100%' }}>
             <Image
-              src={images[currentImageIndex]}
-              alt={`${modal.title} - Image ${currentImageIndex + 1}`}
+              key={imgIdx}
+              src={images[imgIdx]}
+              alt={`${modal.title} &mdash; image ${imgIdx + 1}`}
               fill
-              style={{ objectFit: 'contain' }} // Contain to see whole image without cropping
+              style={{ objectFit: 'cover', transition: 'opacity 0.4s ease' }}
+              priority
             />
-            {/* Gradient overlay at bottom for better text readability if we had text overlay */}
-             <div style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(to top, rgba(10,25,47,0.7) 0%, transparent 40%)',
-                pointerEvents: 'none'
-              }} />
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(to top, rgba(11,22,36,0.85) 0%, rgba(11,22,36,0.1) 40%, transparent 100%)',
+            }} />
           </div>
 
-          {/* Navigation Arrows */}
-          <button onClick={prevImage} style={navArrowStyle('left')}>
-            &#10094;
-          </button>
-          <button onClick={nextImage} style={navArrowStyle('right')}>
-            &#10095;
-          </button>
+          {/* Prev / Next arrows &mdash; only if multiple images */}
+          {images.length > 1 && (
+            <>
+              <button onClick={prev} style={arrowStyle('left')} aria-label="Previous image">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              <button onClick={next} style={arrowStyle('right')} aria-label="Next image">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
 
-          {/* Dots Indicator */}
-          <div style={{ position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '8px', zIndex: 10 }}>
-            {images.map((_, idx) => (
-              <div 
-                key={idx} 
-                onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(idx); }}
-                style={{
-                  width: idx === currentImageIndex ? '24px' : '10px',
-                  height: '10px',
-                  borderRadius: '5px',
-                  background: idx === currentImageIndex ? 'var(--gold)' : 'rgba(255,255,255,0.5)',
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer'
-                }}
-              />
+              {/* Dot indicators */}
+              <div style={{
+                position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+                display: 'flex', gap: '8px', zIndex: 5
+              }}>
+                {images.map((_, i) => (
+                  <button key={i} onClick={(e) => { e.stopPropagation(); setImgIdx(i); }} style={{
+                    width: i === imgIdx ? '28px' : '10px', height: '10px',
+                    borderRadius: '5px', background: i === imgIdx ? 'var(--gold)' : 'rgba(255,255,255,0.35)',
+                    border: 'none', cursor: 'pointer', transition: 'all 0.3s ease',
+                    padding: 0,
+                  }} aria-label={`Image ${i + 1}`} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Top-left badge */}
+          <div style={{ position: 'absolute', top: '20px', left: '24px', zIndex: 5 }}>
+            <span className="badge badge-gold">{modal.type}</span>
+          </div>
+
+          {/* Image counter */}
+          {images.length > 1 && (
+            <div style={{
+              position: 'absolute', top: '20px', right: '70px', zIndex: 5,
+              background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+              borderRadius: '20px', padding: '4px 12px',
+              fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)',
+              fontFamily: 'var(--font-heading)', fontWeight: 600
+            }}>
+              {imgIdx + 1} / {images.length}
+            </div>
+          )}
+
+          {/* Close button */}
+          <button
+            onClick={() => setModal(null)}
+            style={{
+              position: 'absolute', top: '16px', right: '16px', zIndex: 10,
+              width: '40px', height: '40px', borderRadius: '50%',
+              background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', fontSize: '1.3rem', transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.color = '#fff'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.5)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
+            aria-label="Close modal"
+          >
+            &times;
+          </button>
+        </div>
+
+        {/* -- CONTENT --------------------------- */}
+        <div style={{ padding: '32px 40px', overflowY: 'auto', flex: 1 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'flex-start', gap: '20px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <div>
+              <h2 style={{ color: 'var(--white)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.6rem', marginBottom: '6px' }}>
+                {modal.title}
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                <MapPin size={14} className="lucide-icon" style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
+                {modal.location} &middot; {modal.year}
+              </p>
+            </div>
+            <span style={{
+              padding: '6px 16px', borderRadius: '999px', fontSize: '0.75rem',
+              fontFamily: 'var(--font-heading)', fontWeight: 700, letterSpacing: '0.06em', flexShrink: 0,
+              background: modal.status === 'Ongoing' ? 'rgba(52,211,153,0.12)' : 'rgba(255,180,0,0.1)',
+              color: modal.status === 'Ongoing' ? '#34d399' : 'var(--gold)',
+              border: `1px solid ${modal.status === 'Ongoing' ? 'rgba(52,211,153,0.25)' : 'rgba(255,180,0,0.2)'}`,
+            }}>{modal.status}</span>
+          </div>
+
+          <p style={{ color: 'var(--text-muted)', lineHeight: 1.8, marginBottom: '28px', fontSize: '0.95rem' }}>
+            {modal.desc}
+          </p>
+
+          {/* Project Details Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '28px' }}>
+            {[
+              { label: 'Contract Value', val: modal.value, icon: <Banknote size={16} className="lucide-icon" /> },
+              { label: 'Scale', val: modal.scale, icon: <Ruler size={16} className="lucide-icon" /> },
+              { label: 'Client', val: modal.client, icon: <User size={16} className="lucide-icon" /> },
+            ].map(d => (
+              <div key={d.label} style={{
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 'var(--r-md)', padding: '16px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '1rem' }}>{d.icon}</span>
+                  <span style={{ fontSize: '0.68rem', fontFamily: 'var(--font-heading)', fontWeight: 700, color: 'var(--text-soft)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    {d.label}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--white)' }}>{d.val}</div>
+              </div>
             ))}
           </div>
-          
-          <div style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 10 }}>
-            <span className="badge badge-gold" style={{ fontSize: '0.8rem', padding: '6px 14px', boxShadow: 'var(--shadow-md)' }}>
-              {modal.type}
-            </span>
-          </div>
+
+          <Link href="/contact" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+            Enquire About a Similar Project &rarr;
+          </Link>
         </div>
-
-        {/* Details Area */}
-        <div style={{ 
-          padding: '32px 40px', 
-          backgroundColor: '#fff', 
-          display: 'flex', 
-          flexDirection: 'row', 
-          gap: '40px',
-          maxHeight: '40%', // Allow it to take up to 40% of modal height
-          overflowY: 'auto' // Make details scrollable if needed
-        }}>
-          
-          {/* Left info */}
-          <div style={{ flex: '2' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-              <h2 style={{ fontSize: '1.8rem', color: 'var(--navy)', fontFamily: 'var(--font-heading)', fontWeight: 800 }}>{modal.title}</h2>
-              <span className={`badge ${modal.status === 'Ongoing' ? 'badge-green' : 'badge-navy'}`} style={{ fontSize: '0.85rem' }}>
-                {modal.status}
-              </span>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', lineHeight: 1.8, marginBottom: '24px', fontSize: '1.05rem' }}>{modal.desc}</p>
-            <Link href="/contact" className="btn btn-primary btn-lg" style={{ display: 'inline-flex' }}>
-              Enquire About Similar Projects →
-            </Link>
-          </div>
-
-          {/* Right Data Grid */}
-          <div style={{ flex: '1', minWidth: '300px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-              {[
-                { label: 'Location', val: modal.location, icon: '📍' },
-                { label: 'Scale Details', val: modal.scale, icon: '📐' },
-                { label: 'Value', val: modal.value, icon: '💰' },
-                { label: 'Completion Year', val: modal.year, icon: '📅' },
-                { label: 'Client', val: modal.client, icon: '👤' },
-              ].map(d => (
-                <div key={d.label} style={{
-                  display: 'flex', alignItems: 'center', gap: '16px',
-                  borderBottom: '1px solid var(--grey-200)', paddingBottom: '12px'
-                }}>
-                  <div style={{ fontSize: '1.4rem' }}>{d.icon}</div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--grey-500)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '2px' }}>
-                      {d.label}
-                    </div>
-                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--navy)' }}>{d.val}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
   );
 }
 
-// Helper style for navigation arrows
-const navArrowStyle = (direction) => ({
+const arrowStyle = (side) => ({
   position: 'absolute',
-  top: '50%',
-  [direction]: '24px',
+  top: '50%', [side]: '20px',
   transform: 'translateY(-50%)',
-  background: 'rgba(0,0,0,0.5)',
-  color: '#fff',
-  border: '2px solid rgba(255,255,255,0.2)',
+  width: '48px', height: '48px',
   borderRadius: '50%',
-  width: '56px',
-  height: '56px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  fontSize: '1.5rem',
+  background: 'rgba(0,0,0,0.55)',
+  backdropFilter: 'blur(8px)',
+  border: '1px solid rgba(255,255,255,0.15)',
+  color: 'rgba(255,255,255,0.85)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer', zIndex: 5,
   transition: 'all 0.2s ease',
-  zIndex: 10,
-  backdropFilter: 'blur(4px)',
-  fontFamily: 'sans-serif'
 });
+

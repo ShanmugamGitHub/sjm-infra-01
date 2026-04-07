@@ -1,17 +1,16 @@
-'use client';
+﻿'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navItems = [
-  { label: 'Home', href: '/' },
-  { label: 'About', href: '/about' },
-  { label: 'Services', href: '/services' },
-  { label: 'Projects', href: '/projects' },
-  { label: 'Our Reach', href: '/reach' },
-  { label: 'Contact', href: '/contact' },
+  { href: '/', label: 'Home' },
+  { href: '/about', label: 'About' },
+  { href: '/services', label: 'Services' },
+  { href: '/projects', label: 'Projects' },
+  { href: '/reach', label: 'National Reach' },
+  { href: '/contact', label: 'Contact' },
 ];
 
 export default function Navbar() {
@@ -20,82 +19,98 @@ export default function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const handleScroll = () => setScrolled(window.scrollY > 40);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
+    document.body.style.overflow = menuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [menuOpen]);
 
   return (
     <>
-      <nav className={`navbar ${scrolled ? 'scrolled' : ''}`} style={{
-        background: scrolled ? undefined : 'linear-gradient(to bottom, rgba(10,25,47,0.9), transparent)'
-      }}>
+      <nav className={`navbar${scrolled ? ' scrolled' : ''}`} role="navigation" aria-label="Main navigation">
         <div className="navbar-inner">
-          <Link href="/" className="nav-logo">
-            <Image
-              src="/sjm_logo.png"
-              alt="SJM Infrastructure Logo"
-              width={44}
-              height={44}
-              className="nav-logo-img"
-              priority
-            />
-            <div className="nav-logo-text">
-              <span className="nav-logo-main">SJM Infrastructure</span>
-              <span className="nav-logo-sub">Sri Lakshmi Foundations</span>
+          {/* Brand */}
+          <Link href="/" className="nav-brand" onClick={() => setMenuOpen(false)}>
+            <div className="nav-brand-mark">SJM</div>
+            <div className="nav-brand-text">
+              <span className="nav-brand-main">Infrastructure</span>
+              <span className="nav-brand-sub">Sri Lakshmi Foundations</span>
             </div>
           </Link>
 
-          <div className="nav-links">
-            {navItems.map(item => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`nav-link ${pathname === item.href ? 'active' : ''}`}
-              >
-                {item.label}
-              </Link>
+          {/* Desktop Nav */}
+          <ul className="nav-links">
+            {navItems.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className={`nav-link${pathname === item.href ? ' active' : ''}`}>
+                  {item.label}
+                </Link>
+              </li>
             ))}
-            <Link href="/contact" className="nav-link nav-cta">
+          </ul>
+
+          {/* CTA + Hamburger */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <Link href="/contact" className="nav-cta-btn" style={{ display: 'none' }}
+              id="nav-cta-desktop" aria-label="Get a free consultation">
               Get Quote
             </Link>
-          </div>
+            <style>{`@media(min-width:900px){#nav-cta-desktop{display:inline-flex}}`}</style>
 
-          <button
-            className="nav-hamburger"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle mobile menu"
-          >
-            <span style={{ transform: menuOpen ? 'rotate(45deg) translate(5px,5px)' : 'none' }} />
-            <span style={{ opacity: menuOpen ? 0 : 1 }} />
-            <span style={{ transform: menuOpen ? 'rotate(-45deg) translate(5px,-5px)' : 'none' }} />
-          </button>
+            <button
+              className={`nav-hamburger${menuOpen ? ' open' : ''}`}
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Toggle menu"
+              aria-expanded={menuOpen}
+            >
+              <span />
+              <span />
+              <span />
+            </button>
+          </div>
         </div>
       </nav>
 
-      <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
-        {navItems.map(item => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`mobile-nav-link ${pathname === item.href ? 'active' : ''}`}
-            style={pathname === item.href ? { color: 'var(--gold)' } : {}}
-          >
-            {item.label}
-          </Link>
-        ))}
+      {/* Mobile Menu */}
+      <div className={`mobile-menu${menuOpen ? ' open' : ''}`} role="dialog" aria-modal="true">
+        <div style={{
+          position: 'absolute', top: 20, right: 24,
+          width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: '1.8rem'
+        }} onClick={() => setMenuOpen(false)}>&times;</div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
+          <div className="nav-brand-mark" style={{ opacity: 0.9 }}>SJM</div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          {navItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="mobile-nav-link"
+              onClick={() => setMenuOpen(false)}
+              style={{ color: pathname === item.href ? 'var(--gold)' : undefined }}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+
         <Link
           href="/contact"
-          className="btn btn-primary"
-          style={{ marginTop: '12px', justifyContent: 'center' }}
+          className="btn btn-primary btn-lg"
+          onClick={() => setMenuOpen(false)}
+          style={{ marginTop: '32px' }}
         >
-          Get Free Quote
+          Get Free Consultation
         </Link>
       </div>
     </>
   );
 }
+

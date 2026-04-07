@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 
@@ -32,3 +32,4 @@ export default function CounterNumber({ end, duration = 2000 }) {
 
   return <span>{count}</span>;
 }
+
